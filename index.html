@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live NWS Radar Desk</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://api.weather.gov">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="map-stage" aria-label="Live weather radar map">
+      <div id="map"></div>
+
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Live NOAA / NWS</p>
+          <h1>Radar Desk</h1>
+        </div>
+        <div class="top-actions">
+          <button class="loop-button" id="loopToggle" title="Play radar loop" aria-label="Play radar loop">
+            <span data-lucide="play"></span>
+            <span id="loopButtonText">Loop</span>
+          </button>
+          <button class="icon-button" id="locateBtn" title="Use my location" aria-label="Use my location">
+            <span data-lucide="crosshair"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="loop-status" id="loopStatus">
+        <strong id="loopState">Paused</strong>
+        <span id="loopTime">Latest radar</span>
+      </div>
+
+      <div class="legend" id="legend">
+        <div class="legend-head">
+          <strong id="legendTitle">Easy Radar</strong>
+          <span id="legendUpdated">Live layer</span>
+        </div>
+        <div class="scale reflectivity-scale" id="legendScale"></div>
+        <div class="legend-labels" id="legendLabels">
+          <span>Light</span><span>Heavy</span><span>Severe</span>
+        </div>
+      </div>
+    </section>
+
+    <aside class="control-panel">
+      <nav class="tabs" aria-label="Radar tools">
+        <button class="tab active" data-tab="easy"><span data-lucide="cloud-sun"></span>Easy</button>
+        <button class="tab" data-tab="nws"><span data-lucide="radar"></span>NWS Modes</button>
+        <button class="tab" data-tab="forecast"><span data-lucide="calendar-days"></span>Forecast</button>
+      </nav>
+
+      <section class="panel-view active" id="easyPanel">
+        <div class="section-head">
+          <h2>Easy Radar</h2>
+          <p>Plain-language radar with alerts and forecast nearby.</p>
+        </div>
+        <div class="quick-actions">
+          <button class="mode-card active" data-mode="easy-rain">
+            <span data-lucide="cloud-rain"></span>
+            <strong>Rain & Storms</strong>
+            <small>Best for most people</small>
+          </button>
+          <button class="mode-card" data-mode="easy-severe">
+            <span data-lucide="triangle-alert"></span>
+            <strong>Severe Focus</strong>
+            <small>Warnings plus radar</small>
+          </button>
+          <button class="mode-card" data-mode="easy-winter">
+            <span data-lucide="snowflake"></span>
+            <strong>Winter Mix</strong>
+            <small>Precipitation type</small>
+          </button>
+        </div>
+        <div class="readout">
+          <p class="label">What the colors mean</p>
+          <p id="plainExplanation">Green is light rain, yellow and orange are heavier showers, and red or purple can mean intense storms.</p>
+        </div>
+        <label class="field">
+          <span>Search a U.S. place or ZIP</span>
+          <div class="search-row">
+            <input id="placeInput" type="search" placeholder="Example: Dallas, TX">
+            <button id="searchBtn" title="Search" aria-label="Search"><span data-lucide="search"></span></button>
+          </div>
+        </label>
+      </section>
+
+      <section class="panel-view" id="nwsPanel">
+        <div class="section-head">
+          <h2>NWS Radar Modes</h2>
+          <p>Products commonly used by NWS meteorologists and radar sites.</p>
+        </div>
+        <div class="mode-grid" id="modeGrid"></div>
+        <div class="readout compact">
+          <p class="label">Product note</p>
+          <p id="modeDescription">Base reflectivity estimates precipitation intensity near the lowest radar tilt.</p>
+        </div>
+        <label class="field">
+          <span>Local radar site</span>
+          <select id="siteSelect"></select>
+        </label>
+      </section>
+
+      <section class="panel-view" id="forecastPanel">
+        <div class="section-head">
+          <h2>Forecast</h2>
+          <p id="forecastPlace">Choose a place or use your location.</p>
+        </div>
+        <div class="forecast-current" id="currentConditions">
+          <strong>Waiting for a location</strong>
+          <span>Forecast uses api.weather.gov.</span>
+        </div>
+        <div class="forecast-list" id="forecastList"></div>
+        <div class="alerts" id="alerts"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet@3.0.12/dist/esri-leaflet.js"></script>
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
