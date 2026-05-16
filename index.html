@@ -50,6 +50,7 @@
     <aside class="control-panel">
       <nav class="tabs" aria-label="Radar tools">
         <button class="tab active" data-tab="easy"><span data-lucide="cloud-sun"></span>Easy</button>
+        <button class="tab" data-tab="tv"><span data-lucide="tv"></span>TV Radar</button>
         <button class="tab" data-tab="nws"><span data-lucide="radar"></span>NWS Modes</button>
         <button class="tab" data-tab="forecast"><span data-lucide="calendar-days"></span>Forecast</button>
       </nav>
@@ -89,6 +90,39 @@
         </label>
       </section>
 
+      <section class="panel-view" id="tvPanel">
+        <div class="section-head">
+          <h2>TV Radar</h2>
+          <p>Broadcast-style views like local news weather desks use.</p>
+        </div>
+        <div class="quick-actions tv-actions">
+          <button class="mode-card" data-tv-mode="doppler">
+            <span data-lucide="radio-tower"></span>
+            <strong>Live Doppler</strong>
+            <small>Clean radar view</small>
+          </button>
+          <button class="mode-card" data-tv-mode="loop">
+            <span data-lucide="play-circle"></span>
+            <strong>Radar Loop</strong>
+            <small>Moving last hour</small>
+          </button>
+          <button class="mode-card" data-tv-mode="warnings">
+            <span data-lucide="shield-alert"></span>
+            <strong>Warnings</strong>
+            <small>Radar plus alerts</small>
+          </button>
+          <button class="mode-card" data-tv-mode="storm-type">
+            <span data-lucide="cloud-lightning"></span>
+            <strong>Storm Type</strong>
+            <small>Rain, snow, mix</small>
+          </button>
+        </div>
+        <div class="readout compact">
+          <p class="label">Broadcast view</p>
+          <p id="tvDescription">Live Doppler keeps the map simple and high-contrast for quickly seeing rain and storms.</p>
+        </div>
+      </section>
+
       <section class="panel-view" id="nwsPanel">
         <div class="section-head">
           <h2>NWS Radar Modes</h2>
@@ -110,10 +144,20 @@
           <h2>Forecast</h2>
           <p id="forecastPlace">Choose a place or use your location.</p>
         </div>
+        <label class="field">
+          <span>Forecast location</span>
+          <div class="search-row">
+            <input id="forecastPlaceInput" type="search" placeholder="City, state, or ZIP">
+            <button id="forecastSearchBtn" title="Search forecast location" aria-label="Search forecast location"><span data-lucide="search"></span></button>
+          </div>
+        </label>
         <div class="forecast-current" id="currentConditions">
           <strong>Waiting for a location</strong>
           <span>Forecast uses api.weather.gov.</span>
         </div>
+        <div class="forecast-section-title">Hourly</div>
+        <div class="hourly-strip" id="hourlyList"></div>
+        <div class="forecast-section-title">Daily</div>
         <div class="forecast-list" id="forecastList"></div>
         <div class="alerts" id="alerts"></div>
       </section>

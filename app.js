@@ -144,6 +144,7 @@ let loopMapRefresh = 0;
 const tabs = document.querySelectorAll(".tab");
 const panels = {
   easy: document.getElementById("easyPanel"),
+  tv: document.getElementById("tvPanel"),
   nws: document.getElementById("nwsPanel"),
   forecast: document.getElementById("forecastPanel")
 };
@@ -157,8 +158,10 @@ const legendScale = document.getElementById("legendScale");
 const legendLabels = document.getElementById("legendLabels");
 const forecastPlace = document.getElementById("forecastPlace");
 const currentConditions = document.getElementById("currentConditions");
+const hourlyList = document.getElementById("hourlyList");
 const forecastList = document.getElementById("forecastList");
 const alertsBox = document.getElementById("alerts");
+const tvDescription = document.getElementById("tvDescription");
 const loopToggle = document.getElementById("loopToggle");
 const loopState = document.getElementById("loopState");
 const loopTime = document.getElementById("loopTime");
@@ -192,6 +195,9 @@ function bindEvents() {
   document.querySelectorAll("[data-mode]").forEach((button) => {
     button.addEventListener("click", () => setEasyMode(button.dataset.mode));
   });
+  document.querySelectorAll("[data-tv-mode]").forEach((button) => {
+    button.addEventListener("click", () => setTvMode(button.dataset.tvMode));
+  });
   modeGrid.addEventListener("click", (event) => {
     const button = event.target.closest("[data-nws-mode]");
     if (button) setNwsMode(button.dataset.nwsMode);
@@ -208,6 +214,10 @@ function bindEvents() {
   document.getElementById("placeInput").addEventListener("keydown", (event) => {
     if (event.key === "Enter") searchPlace();
   });
+  document.getElementById("forecastSearchBtn").addEventListener("click", searchForecastPlace);
+  document.getElementById("forecastPlaceInput").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") searchForecastPlace();
+  });
   L.control.layers({ Streets: streetMap, Topographic: topoMap }, {}, { position: "bottomleft" }).addTo(map);
 }
 
@@ -217,12 +227,16 @@ function switchTab(tabName) {
   if (tabName === "nws" && !currentMode.startsWith("nws-")) {
     setNwsMode("bref");
   }
+  if (tabName === "tv" && !currentMode.startsWith("tv-")) {
+    setTvMode("doppler");
+  }
 }
 
 function setEasyMode(mode) {
   stopRadarLoop(true);
   currentMode = mode;
   document.querySelectorAll("[data-mode]").forEach((button) => button.classList.toggle("active", button.dataset.mode === mode));
+  document.querySelectorAll("[data-tv-mode]").forEach((button) => button.classList.remove("active"));
   document.querySelectorAll("[data-nws-mode]").forEach((button) => button.classList.remove("active"));
 
   if (mode === "easy-severe") {
@@ -243,6 +257,38 @@ function setEasyMode(mode) {
   }
 }
 
+async function setTvMode(mode) {
+  currentMode = `tv-${mode}`;
+  document.querySelectorAll("[data-tv-mode]").forEach((button) => button.classList.toggle("active", button.dataset.tvMode === mode));
+  document.querySelectorAll("[data-mode]").forEach((button) => button.classList.remove("active"));
+  document.querySelectorAll("[data-nws-mode]").forEach((button) => button.classList.remove("active"));
+
+  if (mode === "loop") {
+    tvDescription.textContent = "Radar Loop animates the latest NWS frames, similar to the moving radar used during local weather hits.";
+    if (!loopFrames.length) await loadLoopFrames();
+    if (!loopPlaying) startRadarLoop();
+    return;
+  }
+
+  stopRadarLoop(true);
+  if (mode === "warnings") {
+    setRadarLayer(createArcGisLayer(RADAR_SERVICE, 0.8));
+    setReferenceLayer(createWmsLayer(`${OPEN_GEO}/wwa/warnings/ows`, "warnings", 0.78));
+    setLegend("TV Warnings", "Radar plus NWS warnings", "reflectivity", ["Light", "Heavy", "Warned"]);
+    tvDescription.textContent = "Warnings overlays active NWS warning shapes on top of radar, like a severe weather broadcast map.";
+  } else if (mode === "storm-type") {
+    setRadarLayer(createWmsLayer(`${OPEN_GEO}/conus/conus_pcpn_typ/ows`, "conus_pcpn_typ", 0.78));
+    setReferenceLayer(null);
+    setLegend("Storm Type", "Rain, snow, ice, mix", "winter", ["Rain", "Snow", "Ice/mix"]);
+    tvDescription.textContent = "Storm Type shows precipitation type, which is useful for winter weather and mixed precipitation setups.";
+  } else {
+    setRadarLayer(createArcGisLayer(RADAR_SERVICE, 0.86));
+    setReferenceLayer(null);
+    setLegend("Live Doppler", "Broadcast-style radar", "reflectivity", ["Light", "Steady", "Heavy"]);
+    tvDescription.textContent = "Live Doppler keeps the map simple and high-contrast for quickly seeing rain and storms.";
+  }
+}
+
 function setNwsMode(modeId) {
   stopRadarLoop(true);
   const mode = nwsModes.find((item) => item.id === modeId);
@@ -250,6 +296,7 @@ function setNwsMode(modeId) {
   currentMode = `nws-${modeId}`;
   document.querySelectorAll("[data-nws-mode]").forEach((button) => button.classList.toggle("active", button.dataset.nwsMode === modeId));
   document.querySelectorAll("[data-mode]").forEach((button) => button.classList.remove("active"));
+  document.querySelectorAll("[data-tv-mode]").forEach((button) => button.classList.remove("active"));
 
   let layer;
   if (mode.layer === "arcgis-radar") {
@@ -431,6 +478,15 @@ function legendLabelsFor(type) {
 
 async function searchPlace() {
   const query = document.getElementById("placeInput").value.trim();
+  await searchAndLoadPlace(query);
+}
+
+async function searchForecastPlace() {
+  const query = document.getElementById("forecastPlaceInput").value.trim();
+  await searchAndLoadPlace(query);
+}
+
+async function searchAndLoadPlace(query) {
   if (!query) return;
   forecastPlace.textContent = "Searching...";
   try {
@@ -441,6 +497,8 @@ async function searchPlace() {
     const lat = Number(place.lat);
     const lon = Number(place.lon);
     const label = place.display_name.split(",").slice(0, 3).join(",");
+    document.getElementById("placeInput").value = query;
+    document.getElementById("forecastPlaceInput").value = query;
     moveToLocation(lat, lon, label);
     loadForecast(lat, lon, label);
   } catch (error) {
@@ -490,6 +548,7 @@ async function loadForecast(lat, lon, label) {
   currentLocation = { lat, lon, label };
   forecastPlace.textContent = label;
   currentConditions.innerHTML = "<strong>Loading forecast...</strong><span>Contacting api.weather.gov</span>";
+  hourlyList.innerHTML = "";
   forecastList.innerHTML = "";
   alertsBox.classList.remove("show");
   alertsBox.innerHTML = "";
@@ -506,7 +565,7 @@ async function loadForecast(lat, lon, label) {
       nwsFetch(hourlyUrl).then((response) => response.json())
     ]);
 
-    renderForecast(forecastData.properties.periods, hourlyData.properties.periods);
+    renderWeatherAppForecast(forecastData.properties.periods, hourlyData.properties.periods);
     if (zone) loadAlerts(zone);
   } catch (error) {
     currentConditions.innerHTML = `<strong>Forecast unavailable</strong><span>${error.message || "Try another U.S. location."}</span>`;
@@ -523,6 +582,67 @@ function nwsFetch(url) {
     if (!response.ok) throw new Error(`NWS returned ${response.status}`);
     return response;
   });
+}
+
+function renderWeatherAppForecast(periods, hourly) {
+  const firstHour = hourly?.[0];
+  const firstPeriod = periods?.[0];
+  if (firstHour) {
+    currentConditions.innerHTML = `
+      <div class="current-summary">
+        <span class="current-temp">${firstHour.temperature}&deg;</span>
+        <strong>${firstHour.shortForecast}</strong>
+        <span>Updated from NWS hourly forecast</span>
+      </div>
+      <div class="current-meta">
+        <span>${firstHour.temperatureUnit}</span>
+        <span>${firstHour.windSpeed}</span>
+        <span>${firstHour.windDirection}</span>
+      </div>
+    `;
+  } else if (firstPeriod) {
+    currentConditions.innerHTML = `
+      <div class="current-summary">
+        <span class="current-temp">${firstPeriod.temperature}&deg;</span>
+        <strong>${firstPeriod.shortForecast}</strong>
+        <span>${firstPeriod.name}</span>
+      </div>
+      <div class="current-meta">
+        <span>${firstPeriod.temperatureUnit}</span>
+        <span>${firstPeriod.windSpeed}</span>
+        <span>${firstPeriod.windDirection}</span>
+      </div>
+    `;
+  }
+
+  hourlyList.innerHTML = (hourly || []).slice(0, 12).map((period) => `
+    <article class="hourly-card">
+      <span>${formatHour(period.startTime)}</span>
+      <img src="${period.icon}" alt="">
+      <strong>${period.temperature}&deg;</strong>
+      <span>${period.shortForecast}</span>
+    </article>
+  `).join("");
+
+  forecastList.innerHTML = (periods || []).slice(0, 10).map((period) => `
+    <article class="forecast-card">
+      <header>
+        <div>
+          <h3>${period.name}</h3>
+          <p><strong>${period.shortForecast}</strong></p>
+        </div>
+        <div class="forecast-temps">
+          <img src="${period.icon}" alt="">
+          <b>${period.temperature}&deg;</b>
+        </div>
+      </header>
+      <p>${period.detailedForecast}</p>
+    </article>
+  `).join("");
+}
+
+function formatHour(value) {
+  return new Intl.DateTimeFormat([], { hour: "numeric" }).format(new Date(value));
 }
 
 function renderForecast(periods, hourly) {
